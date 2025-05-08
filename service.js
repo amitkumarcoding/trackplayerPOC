@@ -23,5 +23,9 @@ module.exports = async function () {
     TrackPlayer.addEventListener(Event.RemoteStop, () => {
       TrackPlayer.destroy();
     });
+
+    TrackPlayer.addEventListener('remote-seek', async ({position}) => {
+      await TrackPlayer.seekTo(position);
+    });
   } catch (error) {}
 };

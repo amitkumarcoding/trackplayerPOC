@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import React, {useEffect, useState} from 'react';
 import TrackPlayer, {
+  AppKilledPlaybackBehavior,
   Capability,
   Event,
   State,
@@ -21,15 +22,48 @@ const TrackPlayerComponent = ({route}) => {
   // const {artist, artwork, id, title, url} = route.params.data;
   const {position, duration} = useProgress();
 
+  const DefaultAudioServiceBehaviour =
+    AppKilledPlaybackBehavior.StopPlaybackAndRemoveNotification;
+
   const tracks = [
     {
       title: 'Without Me',
       artist: 'Halsey',
       artwork: 'https://samplesongs.netlify.app/album-arts/without-me.jpg',
       url: 'https://samplesongs.netlify.app/Without%20Me.mp3',
-      id: 'A_ID_6',
+      id: 2,
     },
   ];
+
+  useEffect(() => {
+    const onEndListener = TrackPlayer.addEventListener(
+      Event.PlaybackQueueEnded,
+      ({track, position}) => {
+        if (typeof position === 'number' && track != null) {
+          console.log('🚀 ~ track finished:', track, 'at position:', position);
+        } else {
+          console.log('🚀 ~ PlaybackQueueEnded with undefined data');
+        }
+      },
+    );
+
+    return () => onEndListener.remove();
+  }, []);
+
+  useEffect(() => {
+    const listener = TrackPlayer.addEventListener(
+      Event.PlaybackActiveTrackChanged,
+      async ({nextTrack}) => {
+        if (nextTrack != null) {
+          const track = await TrackPlayer.getTrack(nextTrack);
+          console.log('🚀 ~ track Loaded', track);
+        } else {
+          console.log('🚀 ~ nextTrack is null');
+        }
+      },
+    );
+    return () => listener.remove();
+  }, []);
 
   useEffect(() => {
     TrackPlayer.addEventListener(Event.RemotePlay, () => {
@@ -48,14 +82,22 @@ const TrackPlayerComponent = ({route}) => {
       await TrackPlayer.setupPlayer();
       await TrackPlayer.reset();
       await TrackPlayer.updateOptions({
+        android: {
+          appKilledPlaybackBehavior: DefaultAudioServiceBehaviour,
+        },
         stopWithApp: false,
-        capabilities: [Capability.Play, Capability.Pause],
-        compactCapabilities: [Capability.Play, Capability.Pause],
+        capabilities: [Capability.Play, Capability.Pause, Capability.SeekTo],
+        compactCapabilities: [
+          Capability.Play,
+          Capability.Pause,
+          Capability.SeekTo,
+        ],
       });
       await TrackPlayer.add(tracks);
       const playerState = await TrackPlayer.getState();
       if (playerState !== State.Playing) {
         await TrackPlayer.play();
+
         setIsPlaying(true);
       }
     };
@@ -63,7 +105,7 @@ const TrackPlayerComponent = ({route}) => {
     startPlayer();
 
     return () => {
-      TrackPlayer.destroy();
+      TrackPlayer.stop();
     };
   }, []);
 
