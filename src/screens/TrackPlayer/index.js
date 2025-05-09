@@ -27,11 +27,13 @@ const TrackPlayerComponent = ({route}) => {
 
   const tracks = [
     {
-      title: 'Without Me',
-      artist: 'Halsey',
-      artwork: 'https://samplesongs.netlify.app/album-arts/without-me.jpg',
-      url: 'https://samplesongs.netlify.app/Without%20Me.mp3',
-      id: 2,
+      title: 'test',
+      artist: 'Amit',
+      artwork:
+        'https://d3qcxffgqx9ae.cloudfront.net/content/1743625073981-Player_Screen_powernap.webp',
+      url: 'https://d1dkg73nq3w8tn.cloudfront.net/audio/Funfocus_Hindi_with_music_01fd59d654_audio_20241128T070320/Funfocus_Hindi_with_music_01fd59d654_audio_20241128T070320.m3u8',
+      id: '1',
+      type: 'hls',
     },
   ];
 
@@ -48,6 +50,12 @@ const TrackPlayerComponent = ({route}) => {
     );
 
     return () => onEndListener.remove();
+  }, []);
+
+  useEffect(() => {
+    TrackPlayer.addEventListener('playback-error', error => {
+      console.log('Playback error:', error);
+    });
   }, []);
 
   useEffect(() => {
@@ -79,11 +87,17 @@ const TrackPlayerComponent = ({route}) => {
 
   useEffect(() => {
     const startPlayer = async () => {
-      await TrackPlayer.setupPlayer();
+      await TrackPlayer.setupPlayer({
+        autoHandleInterruptions: true,
+        minBuffer: 1000,
+        maxBuffer: 3000,
+      });
       await TrackPlayer.reset();
       await TrackPlayer.updateOptions({
         android: {
           appKilledPlaybackBehavior: DefaultAudioServiceBehaviour,
+          stoppingAppPausesPlayback: true,
+          alwaysPauseOnInterruption: true,
         },
         stopWithApp: false,
         capabilities: [Capability.Play, Capability.Pause, Capability.SeekTo],
@@ -92,6 +106,7 @@ const TrackPlayerComponent = ({route}) => {
           Capability.Pause,
           Capability.SeekTo,
         ],
+        progressUpdateEventInterval: 2,
       });
       await TrackPlayer.add(tracks);
       const playerState = await TrackPlayer.getState();
